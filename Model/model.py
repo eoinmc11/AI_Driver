@@ -2,6 +2,7 @@ import os
 import gym
 import random
 import datetime
+import time
 import numpy as np
 import tensorflow as tf
 
@@ -10,6 +11,8 @@ from _collections import deque
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import load_model, Sequential, Model
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Dropout, Input, InputLayer
+
+from TensorBoard import ModifiedTensorBoard as mtb
 
 
 class DQN:
@@ -28,6 +31,7 @@ class DQN:
         self.learning_rate = 0.005
         self.model_directory = 'Models'
         self.target_update_counter = 0
+        self.tensorboard = mtb.ModifiedTensorBoard(log_dir="logs/{}-{}".format(self.agent_name, int(time.time())))
 
         if not os.path.exists(self.model_directory):
             os.mkdir(self.model_directory)
@@ -68,11 +72,6 @@ class DQN:
         self.replay_memory.append(transition)
 
     def target_train(self):
-        # weights = self.model.get_weights()
-        # target_weights = self.target_model.get_weights()
-        # for i in range(len(target_weights)):
-        #     target_weights[i] = weights[i] * self.tau + target_weights[i] * (1 - self.tau)
-        # self.target_model.set_weights(target_weights)
         self.target_model.set_weights(self.model.get_weights())
 
     def get_action(self, state):
@@ -117,7 +116,8 @@ class DQN:
             X.append(current_state)
             y.append(current_qs)
 
-        self.model.fit(np.array(X) / 255, np.array(y), batch_size=self.batch_size, verbose=0, shuffle=False)
+        self.model.fit(np.array(X) / 255, np.array(y), batch_size=self.batch_size, verbose=0, shuffle=False,
+                       callbacks=[self.tensorboard] if terminal_state else None)
         self.model.save(self.model_directory + '/' + self.agent_name)
 
         if terminal_state:

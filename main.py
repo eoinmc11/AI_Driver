@@ -1,10 +1,13 @@
 import numpy as np
+import os
 import gym
 import tensorflow as tf
 import datetime
 from Model import model
 from Racer import Racer
 from _collections import deque
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 if __name__ == "__main__":
 
@@ -32,11 +35,22 @@ if __name__ == "__main__":
                np.array([-0.5, 0.0, 0.0]),
                np.array([+1.0, 0.0, 0.0]),
                np.array([+0.5, 0.0, 0.0]),
-               np.array([0.0, +0.5, 0.0]),
+               np.array([0.0, 0.0, 0.0]),
                np.array([0.0, +1.0, 0.0]),
                np.array([0.0, +0.5, 0.0]),
                np.array([0.0, 0.0, +0.8]),
                np.array([0.0, 0.0, +0.3]))
+    """
+    0. Full Left
+    1. Half Left
+    2. Full Right
+    3. Half Right
+    4. Neutral (For steering)
+    5. Full Acceleration
+    6. Half Acceleration
+    7. Full Break (0.8 so its not instant)
+    8. Half Break
+    """
 
     num_actions = len(actions)
     env = Racer.CarRacing()
@@ -47,8 +61,8 @@ if __name__ == "__main__":
     record_video = False
     isopen = True
     current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    log_dir = 'logs/dqn/' + current_time
-    summary_writer = tf.summary.create_file_writer(log_dir)
+    # log_dir = 'logs/dqn/' + current_time
+    # summary_writer = tf.summary.create_file_writer(log_dir)
 
     reward_kill = -20.0
     episode = 1
