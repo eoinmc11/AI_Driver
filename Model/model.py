@@ -21,9 +21,8 @@ class DQN:
         self.output_dim = num_actions
         self.replay_memory = deque(maxlen=2000)
 
-        self.gamma = 0.9
+        self.gamma = 0.85
         self.batch_size = batch_size
-        self.tau = 0.125
         self.epsilon = 1.0
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
@@ -50,9 +49,15 @@ class DQN:
 
     def create_model(self):
         model = Sequential()
-        state_shape = (96, 96, 3)
+        state_shape = (96, 96, 1)
         model.add(Conv2D(input_shape=state_shape,
                          data_format='channels_last',
+                         filters=256,
+                         kernel_size=(3, 3),
+                         strides=(2, 2),
+                         activation='relu'))
+        model.add(MaxPooling2D(2, 2))
+        model.add(Conv2D(data_format='channels_last',
                          filters=256,
                          kernel_size=(3, 3),
                          strides=(2, 2),
@@ -85,7 +90,7 @@ class DQN:
             # print('Random', action)
             return action
         action = np.argmax(self.model.predict(state)[0])
-        print('Predicted', action, self.model.predict(state))
+        print('Predicted', action + 1, self.model.predict(state))
         return action
 
     def train_model(self, terminal_state):
@@ -119,14 +124,4 @@ class DQN:
         self.model.fit(np.array(X) / 255, np.array(y), batch_size=self.batch_size, verbose=0, shuffle=False,
                        callbacks=[self.tensorboard] if terminal_state else None)
         self.model.save(self.model_directory + '/' + self.agent_name)
-
-        if terminal_state:
-            self.target_update_counter += 1
-
-        if self.target_update_counter > 5:
-            print('Target Train')
-            self.target_train()
-            self.target_update_counter = 0
-
-
 
