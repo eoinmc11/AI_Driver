@@ -61,9 +61,14 @@ if __name__ == "__main__":
         action = actions[act]
 
         while True:
-            if steps % 2 is 0:
+            # Acts a basic control system while training to prevent unfluid motion
+            if steps % 2 is 0 and training:
                 act = agent.get_action(current_state)
                 action = actions[act]
+            elif not training:
+                act = agent.get_action(current_state)
+                action = actions[act]
+
             new_state, reward, done, info = env.step(action)
             cropped_state = spp.initial_crop(new_state)
             _, h, _, _ = spp.conv_2_hsv(cropped_state)
