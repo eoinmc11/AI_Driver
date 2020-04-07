@@ -5,6 +5,7 @@ import tensorflow as tf
 import datetime
 from Model import model
 from Racer import Racer
+from StateHandler import StatePreProcess as spp
 from _collections import deque
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -31,8 +32,14 @@ if __name__ == "__main__":
     num_actions = len(actions)
     env = Racer.CarRacing()
     env.render()
+
     current_state = env.reset()
-    agent = model.DQN(env, num_actions, 32)
+    cropped_state = spp.initial_crop(current_state)
+    _, h, _, _ = spp.conv_2_hsv(cropped_state)
+    current_state = np.expand_dims(h, axis=2)
+    input_dim = current_state.shape
+    agent = model.DQN(input_dim, num_actions, 32)
+
     record_video = False
     isopen = True
     current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -58,6 +65,9 @@ if __name__ == "__main__":
                 act = agent.get_action(current_state)
                 action = actions[act]
             new_state, reward, done, info = env.step(action)
+            cropped_state = spp.initial_crop(new_state)
+            _, h, _, _ = spp.conv_2_hsv(cropped_state)
+            new_state = np.expand_dims(h, axis=2)
             agent.update_memory([current_state, act, reward, new_state, done])
             if training:
                 agent.train_model(done)

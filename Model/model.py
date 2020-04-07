@@ -10,14 +10,14 @@ from gym import wrappers
 from _collections import deque
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import load_model, Sequential, Model
-from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Dropout, Input, InputLayer
+from tensorflow.keras.layers import Dense, Flatten, Conv2D, Conv1D, MaxPooling2D, Dropout, Input, InputLayer
 
 from TensorBoard import ModifiedTensorBoard as mtb
 
 
 class DQN:
-    def __init__(self, dqn_env, num_actions, batch_size):
-        self.env = dqn_env
+    def __init__(self, in_shape, num_actions, batch_size):
+        self.input_dim = in_shape
         self.output_dim = num_actions
         self.replay_memory = deque(maxlen=2000)
 
@@ -49,8 +49,7 @@ class DQN:
 
     def create_model(self):
         model = Sequential()
-        state_shape = (96, 96, 1)
-        model.add(Conv2D(input_shape=state_shape,
+        model.add(Conv2D(input_shape=self.input_dim,
                          data_format='channels_last',
                          filters=256,
                          kernel_size=(3, 3),
