@@ -12,22 +12,27 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 if __name__ == "__main__":
     """
-    ACTIONS
-    1. Full Acceleration
-    2. Half Acceleration
-    3. 60% Brake
-    4. Left with 20% Acceleration
-    5. Right with 20% Acceleration
-    6. Left with 10% Brake
-    7. Right with 10% Brake
+    ACTIONS STATE 1
+    1. Do Nothing
+    2. Full Left
+    3. Full Right
+    4. Half Left
+    5. Half Right
+    6. Full Acceleration
+    7. Half Acceleration
+    8. 60% Brake
+    9. 30% Brake
     """
-    actions = (np.array([0.0, +1.0, 0.0]),
+    actions = (np.array([0.0, 0.0, 0.0]),
+               np.array([-1.0, 0.0, 0.0]),
+               np.array([+1.0, 0.0, 0.0]),
+               np.array([-0.5, 0.0, 0.0]),
+               np.array([+0.5, 0.0, 0.0]),
+               np.array([0.0, +1.0, 0.0]),
                np.array([0.0, +0.5, 0.0]),
-               np.array([0.0, 0.0, +0.6]),
-               np.array([-1.0, +0.2, 0.0]),
-               np.array([+1.0, +0.2, 0.0]),
-               np.array([-1.0, 0.0, +0.1]),
-               np.array([+1.0, 0.0, +0.1]),)
+               np.array([0.0, 0.0, 0.6]),
+               np.array([0.0, 0.0, 0.3]),
+               )
 
     num_actions = len(actions)
     env = Racer.CarRacing()
@@ -43,8 +48,8 @@ if __name__ == "__main__":
     record_video = False
     isopen = True
     current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    # log_dir = 'logs/dqn/' + current_time
-    # summary_writer = tf.summary.create_file_writer(log_dir)
+    log_dir = 'logs/dqn/' + current_time
+    summary_writer = tf.summary.create_file_writer(log_dir)
 
     reward_kill = -20.0
     episode = 1
@@ -55,13 +60,16 @@ if __name__ == "__main__":
         total_reward = 0.0
         steps = 0
         restart = False
-        training = True
+        training = False
         reward = 0
         act = 1
         action = actions[act]
 
+
         while True:
             # Acts a basic control system while training to prevent unfluid motion
+            x, y = env.car.hull.position
+            print((x, y), 'pos')
             if steps % 2 is 0 and training:
                 act = agent.get_action(current_state)
                 action = actions[act]
@@ -80,10 +88,10 @@ if __name__ == "__main__":
             steps += 1
             isopen = env.render()
             current_state = new_state
-            if done or restart or isopen is False or total_reward < reward_kill:
+            if done or restart or isopen is False or total_reward < reward_kill or steps > 5000:
                 if episode % 5 == 0:
                     agent.target_train()
-                agent.save_model('Models/DQN')
+                agent.save_model()
                 episode += 1
                 break
     env.close()

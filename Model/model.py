@@ -41,7 +41,7 @@ class DQN:
         else:
             print('No Model Found: Creating....')
             self.model = self.create_model()
-            self.save_model(self.model_directory + '/' + self.agent_name)
+            self.save_model()
 
         # Create Target Model
         self.target_model = self.create_model()
@@ -69,8 +69,8 @@ class DQN:
         model.compile(loss="mean_squared_error", optimizer=Adam(lr=self.learning_rate))
         return model
 
-    def save_model(self, fn):
-        self.model.save(fn, save_format='tf')
+    def save_model(self):
+        self.model.save(self.model_directory + '/' + self.agent_name, save_format='tf')
 
     def update_memory(self, transition):
         self.replay_memory.append(transition)
@@ -89,7 +89,7 @@ class DQN:
             # print('Random', action)
             return action
         action = np.argmax(self.model.predict(state)[0])
-        print('Predicted', action + 1, self.model.predict(state))
+        print('Predicted Action:', action + 1, 'Epsilon:', self.epsilon, self.model.predict(state))
         return action
 
     def train_model(self, terminal_state):
@@ -121,6 +121,6 @@ class DQN:
             y.append(current_qs)
 
         self.model.fit(np.array(X) / 255, np.array(y), batch_size=self.batch_size, verbose=0, shuffle=False,
-                       callbacks=[self.tensorboard] if terminal_state else None)
+                       callbacks=None)
         self.model.save(self.model_directory + '/' + self.agent_name)
 

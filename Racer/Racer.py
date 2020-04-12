@@ -47,14 +47,14 @@ WINDOW_W = 1000
 WINDOW_H = 800
 
 SCALE = 6.0  # Track scale
-TRACK_RAD = 900 / SCALE  # Track is heavily morphed circle with this radius
+TRACK_RAD = 400 / SCALE  # Track is heavily morphed circle with this radius
 PLAYFIELD = 2000 / SCALE  # Game over boundary
 FPS = 50  # Frames per second
 ZOOM = 2.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
 
-TRACK_DETAIL_STEP = 21 / SCALE
-TRACK_TURN_RATE = 0.31
+TRACK_DETAIL_STEP = 30 / SCALE
+TRACK_TURN_RATE = 0.21
 TRACK_WIDTH = 40 / SCALE
 BORDER = 8 / SCALE
 BORDER_MIN_COUNT = 4
@@ -132,6 +132,9 @@ class CarRacing(gym.Env, EzPickle):
                                        dtype=np.float32)  # steer, gas, brake
         self.observation_space = spaces.Box(low=0, high=255, shape=(STATE_H, STATE_W, 3), dtype=np.uint8)
 
+    def pos_car(self):
+        return self.pos_car()
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -160,7 +163,7 @@ class CarRacing(gym.Env, EzPickle):
                 self.start_alpha = 2 * math.pi * (-0.5) / CHECKPOINTS
                 rad = 1.5 * TRACK_RAD
             checkpoints.append((alpha, rad * math.cos(alpha), rad * math.sin(alpha)))
-
+        print('c', checkpoints)
         # print "\n".join(str(h) for h in checkpoints)
         # self.road_poly = [ (    # uncomment this to see checkpoints
         #    [ (tx,ty) for a,tx,ty in checkpoints ],
