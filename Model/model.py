@@ -79,6 +79,7 @@ class DQN:
         self.target_model.set_weights(self.model.get_weights())
 
     def get_action(self, state, action_verbose):
+        # TODO: create new epsilon greedy strategy
         if state.ndim is 3:
             state = np.expand_dims(state, axis=0)
         self.epsilon *= self.epsilon_decay
