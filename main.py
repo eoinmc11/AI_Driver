@@ -1,97 +1,99 @@
+# Import Libraries
 import numpy as np
 import os
-import gym
 import tensorflow as tf
 import datetime
-from Model import model
-from Racer import Racer
-from StateHandler import StatePreProcess as spp
-from _collections import deque
 
+# Import Project Files
+from Model import model
+from CarRacerEnvs import Racer
+from StateHandling import stateProcess as Sp
+
+# Reduce logging messages
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 if __name__ == "__main__":
-    """
-    ACTIONS STATE 1
-    1. Do Nothing
-    2. Full Left
-    3. Full Right
-    4. Half Left
-    5. Half Right
-    6. Full Acceleration
-    7. Half Acceleration
-    8. 60% Brake
-    9. 30% Brake
-    """
-    actions = (np.array([0.0, 0.0, 0.0]),
-               np.array([-1.0, 0.0, 0.0]),
-               np.array([+1.0, 0.0, 0.0]),
-               np.array([-0.5, 0.0, 0.0]),
-               np.array([+0.5, 0.0, 0.0]),
-               np.array([0.0, +1.0, 0.0]),
-               np.array([0.0, +0.5, 0.0]),
-               np.array([0.0, 0.0, 0.6]),
-               np.array([0.0, 0.0, 0.3]),
+
+    # ACTIONS STATE v1
+    actions = (np.array([-1.0, 0.0, 0.0]),  # 1. Full Left
+               np.array([+1.0, 0.0, 0.0]),  # 2. Full Right
+               np.array([-0.5, 0.0, 0.0]),  # 3. Half Left
+               np.array([+0.5, 0.0, 0.0]),  # 4. Half Right
+               np.array([0.0, +1.0, 0.0]),  # 5. Full Acceleration
+               np.array([0.0, +0.5, 0.0]),  # 6. Half Acceleration
+               np.array([0.0, 0.0, 0.6]),   # 7. 60% Brake
+               np.array([0.0, 0.0, 0.3]),   # 8. 30% Brake
                )
 
-    num_actions = len(actions)
+    num_actions = len(actions)  # Number of possible actions - Neural Net output shape
+    batch_size = 32  # Batch size for training the Neural Network and Replay Memory Size
+    train_target_every = 5
+    train_model_every = 2
+    max_steps = 5000
+
+    # Setup/Initialise Environment
     env = Racer.CarRacing()
     env.render()
 
-    current_state = env.reset()
-    cropped_state = spp.initial_crop(current_state)
-    _, h, _, _ = spp.conv_2_hsv(cropped_state)
-    current_state = np.expand_dims(h, axis=2)
-    input_dim = current_state.shape
-    agent = model.DQN(input_dim, num_actions, 32)
+    _, current_state_h_value, _, _ = Sp.conv_2_hsv(Sp.crop_bottom(env.reset()))
+    current_state = np.expand_dims(current_state_h_value, axis=2)  # Increase dim to 4 as prediction needs epoch dim
+    input_dim = current_state.shape  # Neural Network input shape
+
+    # Create the Agent
+    agent = model.DQN(input_dim, num_actions, batch_size)
 
     record_video = False
-    isopen = True
+    game_is_running = True
+
     current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     log_dir = 'logs/dqn/' + current_time
     summary_writer = tf.summary.create_file_writer(log_dir)
 
-    reward_kill = -20.0
+    min_reward_allowed = -20.0  # Finish Episode if this is reached
     episode = 1
-    while isopen:
+
+    while game_is_running:
+
+        # Reset Env and Params
         env.reset()
-        # tiles = env.get_tiles()
-        print('Episode', episode, 'Starting')
         total_reward = 0.0
         steps = 0
         restart = False
-        training = False
+        training = True
+        on_track = True
+        action_verbose = False
         reward = 0
-        act = 1
-        action = actions[act]
+        action = actions[1]
 
+        print('Episode', episode, 'Starting')
 
         while True:
-            # Acts a basic control system while training to prevent unfluid motion
-            x, y = env.car.hull.position
-            print((x, y), 'pos')
-            if steps % 2 is 0 and training:
-                act = agent.get_action(current_state)
-                action = actions[act]
-            elif not training:
-                act = agent.get_action(current_state)
-                action = actions[act]
 
-            new_state, reward, done, info = env.step(action)
-            cropped_state = spp.initial_crop(new_state)
-            _, h, _, _ = spp.conv_2_hsv(cropped_state)
-            new_state = np.expand_dims(h, axis=2)
-            agent.update_memory([current_state, act, reward, new_state, done])
-            if training:
+            # Get Action to take based on the Current State
+            act = agent.get_action(current_state, action_verbose)
+            action = actions[act]
+
+            if steps > 40:  # Below ~40 steps the entire screen is not loaded
+                on_track = Sp.on_track_detection(current_state)  # Check if agent is on the track
+
+            # Take the action and process new state
+            new_state, reward, done, info = env.step(action, on_track)
+            _, current_state_h_value, _, _ = Sp.conv_2_hsv(Sp.crop_bottom(new_state))
+            new_state = np.expand_dims(current_state_h_value, axis=2)
+
+            agent.update_replay_memory([current_state, act, reward, new_state, done])
+            if training and steps % train_model_every is 0:
                 agent.train_model(done)
+
+            # Update params and check game status
             total_reward += reward
             steps += 1
-            isopen = env.render()
+            game_is_running = env.render()
             current_state = new_state
-            if done or restart or isopen is False or total_reward < reward_kill or steps > 5000:
-                if episode % 5 == 0:
-                    agent.target_train()
+            if done or restart or game_is_running is False or total_reward < min_reward_allowed or steps > max_steps:
                 agent.save_model()
                 episode += 1
+                if episode % train_target_every == 0:
+                    agent.train_target_model()
                 break
     env.close()

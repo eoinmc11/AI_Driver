@@ -28,7 +28,7 @@ class DQN:
         self.epsilon_decay = 0.995
         self.agent_name = 'DQN'
         self.learning_rate = 0.005
-        self.model_directory = 'Models'
+        self.model_directory = 'SavedModels'
         self.target_update_counter = 0
         self.tensorboard = mtb.ModifiedTensorBoard(log_dir="logs/{}-{}".format(self.agent_name, int(time.time())))
 
@@ -72,13 +72,13 @@ class DQN:
     def save_model(self):
         self.model.save(self.model_directory + '/' + self.agent_name, save_format='tf')
 
-    def update_memory(self, transition):
+    def update_replay_memory(self, transition):
         self.replay_memory.append(transition)
 
-    def target_train(self):
+    def train_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
 
-    def get_action(self, state):
+    def get_action(self, state, action_verbose):
         if state.ndim is 3:
             state = np.expand_dims(state, axis=0)
         self.epsilon *= self.epsilon_decay
@@ -89,7 +89,8 @@ class DQN:
             # print('Random', action)
             return action
         action = np.argmax(self.model.predict(state)[0])
-        print('Predicted Action:', action + 1, 'Epsilon:', self.epsilon, self.model.predict(state))
+        if action_verbose:
+            print('Predicted Action:', action + 1, 'Epsilon:', self.epsilon, self.model.predict(state))
         return action
 
     def train_model(self, terminal_state):
