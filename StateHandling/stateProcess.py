@@ -18,8 +18,8 @@ def conv_2_hsv(img):
 
 
 def crop_bottom(img):
-    # TODO: Crop edges as well possibly
-    return img[:80, :]
+    # TODO: Crop more and find out why smaller images crash track generation
+    return img[:, :81]
 
 
 def on_track_detection(img):

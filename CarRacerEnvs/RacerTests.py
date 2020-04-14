@@ -50,7 +50,7 @@ WINDOW_H = 800
 
 SCALE = 6.0  # Track scale
 TRACK_RAD = 900 / SCALE  # Track is heavily morphed circle with this radius
-PLAYFIELD = 2000 / SCALE  # Game over boundary
+PLAYFIELD = 4000 / SCALE  # Game over boundary
 FPS = 50  # Frames per second
 ZOOM = 2.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
@@ -517,6 +517,8 @@ if __name__ == "__main__":
 
         env = Monitor(env, '/tmp/video-test', force=True)
     isopen = True
+    current = env.reset()
+    Sp.crop_bottom(current)
     while isopen:
         env.reset()
         total_reward = 0.0
@@ -526,8 +528,9 @@ if __name__ == "__main__":
         while True:
             s, r, done, info = env.step(a, on_track)
             total_reward += r
-            if steps > 40:
-                on_track = Sp.on_track_detection(s)
+            # if steps > 40:
+            #     Sp.crop_bottom(s)
+            #     on_track = Sp.on_track_detection(s)
                 # spp.edge_detection(s)
             # if steps % 10 == 0 and steps > 40 or done:
             #     spp.state_2_saved(s, steps)

@@ -17,8 +17,8 @@ if __name__ == "__main__":
     # ACTIONS STATE v1
     actions = (np.array([-1.0, 0.0, 0.0]),  # 1. Full Left
                np.array([+1.0, 0.0, 0.0]),  # 2. Full Right
-               np.array([-0.5, 0.0, 0.0]),  # 3. Half Left
-               np.array([+0.5, 0.0, 0.0]),  # 4. Half Right
+               np.array([-0.5, +0.5, 0.0]),  # 3. Half Left, Half Acceleration
+               np.array([+0.5, +0.5, 0.0]),  # 4. Half Right, Half Acceleration
                np.array([0.0, +1.0, 0.0]),  # 5. Full Acceleration
                np.array([0.0, +0.5, 0.0]),  # 6. Half Acceleration
                np.array([0.0, 0.0, 0.6]),   # 7. 60% Brake
@@ -26,10 +26,10 @@ if __name__ == "__main__":
                )
 
     num_actions = len(actions)  # Number of possible actions - Neural Net output shape
-    batch_size = 32  # Batch size for training the Neural Network and Replay Memory Size
+    batch_size = 16  # Batch size for training the Neural Network and Replay Memory Size
     train_target_every = 5
-    train_model_every = 2
-    max_steps = 5000
+    train_model_every = 1
+    max_steps = 100000
 
     # Setup/Initialise Environment
     env = Racer.CarRacing()
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     input_dim = current_state.shape  # Neural Network input shape
 
     # Create the Agent
-    agent = model.DQN(input_dim, num_actions, batch_size)
+    agent = model.DQN(input_dim, num_actions, batch_size, 2)
 
     record_video = False
     game_is_running = True
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         restart = False
         training = True
         on_track = True
-        action_verbose = False
+        action_verbose = True
         reward = 0
         action = actions[1]
 
