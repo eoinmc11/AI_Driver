@@ -19,6 +19,7 @@ class DQN:
         self.agent_name = 'DQ2TEST'
         self.model_directory = 'SavedModels'
         self.model = self.make_model()
+
         # TODO: Prioritised Experience Replay
         self.replay_memory = deque(maxlen=20000)
 
@@ -26,8 +27,7 @@ class DQN:
         self.batch_size = batch_size
         self.epsilon = 1.0
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.9995
-
+        self.epsilon_decay = 0.995
         self.learning_rate = 0.005
 
         self.target_update_counter = 0
@@ -85,7 +85,7 @@ class DQN:
         return model
 
     def create_d3qn_model(self):
-        # TODO: D3QN
+        # TODO: Add LSTM
         input = Input(self.input_dim)
         out = Conv2D(data_format='channels_last',
                      filters=256,
@@ -130,7 +130,6 @@ class DQN:
         self.target_model.set_weights(self.model.get_weights())
 
     def get_action(self, state, action_verbose):
-        # TODO: create new epsilon greedy strategy
         if state.ndim is 3:
             state = np.expand_dims(state, axis=0)
         self.epsilon *= self.epsilon_decay
@@ -139,7 +138,6 @@ class DQN:
         # print('Epsilon:', self.epsilon)
         if np.random.random() < self.epsilon:
             action = random.randint(0, self.output_dim - 1)
-            # print('Random', action)
             return action
         action = np.argmax(self.model.predict(state)[0])
         if action_verbose:

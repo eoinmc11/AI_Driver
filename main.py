@@ -45,9 +45,9 @@ if __name__ == "__main__":
     record_video = False
     game_is_running = True
 
-    current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    log_dir = 'logs/dqn/' + current_time
-    summary_writer = tf.summary.create_file_writer(log_dir)
+    # current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    # log_dir = 'logs/dqn/' + current_time
+    # summary_writer = tf.summary.create_file_writer(log_dir)
 
     min_reward_allowed = -20.0  # Finish Episode if this is reached
     episode = 1
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         restart = False
         training = True
         on_track = True
-        action_verbose = True
+        action_verbose = 1
         reward = 0
         action = actions[1]
 

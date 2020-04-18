@@ -95,7 +95,7 @@ class FrictionDetector(contactListener):
         if not obj or "tiles" not in obj.__dict__:
             return
         if begin:
-            obj.tiles.add(tile)
+            obj.tiles.add_experience(tile)
             # print tile.road_friction, "ADD", len(obj.tiles)
             if not tile.road_visited:
                 tile.road_visited = True

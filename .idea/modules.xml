@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../AI_Driver_v0.2/.idea/AII.iml" filepath="$PROJECT_DIR$/../AI_Driver_v0.2/.idea/AII.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/AI_Driver.iml" filepath="$PROJECT_DIR$/.idea/AI_Driver.iml" />
     </modules>
   </component>
