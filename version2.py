@@ -35,25 +35,24 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # ========== Game Actions ==========
 
-car_actions = (np.array([-1.0, 0.0, 0.0]),  # 1. Full Left
-               np.array([+1.0, 0.0, 0.0]),  # 2. Full Right
-               np.array([-0.5, +0.5, 0.0]),  # 3. Half Left, Half Acceleration
-               np.array([+0.5, +0.5, 0.0]),  # 4. Half Right, Half Acceleration
-               np.array([0.0, +1.0, 0.0]),  # 5. Full Acceleration
-               np.array([0.0, +0.5, 0.0]),  # 6. Half Acceleration
-               np.array([0.0, 0.0, 0.6]),  # 7. 60% Brake
-               np.array([0.0, 0.0, 0.3]),  # 8. 30% Brake
-               )
+# car_actions = (np.array([-1.0, 0.0, 0.0]),  # 1. Full Left
+#                np.array([+1.0, 0.0, 0.0]),  # 2. Full Right
+#                np.array([-0.5, +0.5, 0.0]),  # 3. Half Left, Half Acceleration
+#                np.array([+0.5, +0.5, 0.0]),  # 4. Half Right, Half Acceleration
+#                np.array([0.0, +1.0, 0.0]),  # 5. Full Acceleration
+#                np.array([0.0, +0.5, 0.0]),  # 6. Half Acceleration
+#                np.array([0.0, 0.0, 0.6]),  # 7. 60% Brake
+#                np.array([0.0, 0.0, 0.3]),  # 8. 30% Brake
+#                )
 
 # ========== Game Params ==========
 
 batch_size = 32
 episode_num = 1
-training = False
+training = True
 action_verbose = 1
 record_video = False
-human_control = False
-game_is_running = True
+human_control = True
 train_target_every = 5
 model_name = "PER_TEST"
 
@@ -93,47 +92,49 @@ def record_game(env):
     return Monitor(env, '/tmp/video-test', force=True)
 
 
-def not_human():
+def ai_driver():
     env = CarRacing()
     env.render()
     current_state = env.reset()
     input_shape = current_state.shape  # Neural Network input shape
     output_shape = len(env.car_actions)
     agent = DQN(input_shape, output_shape, batch_size, model_name)
-
-
     if record_video:
         env = record_game(env)
+    game_is_running = True
+
     while game_is_running:
         game_current_state = env.reset()
         total_reward = 0.0
-        steps = 0
-        restart = False
+        restart, done, reward, steps, episode_num = False, False, 0, 0, 1
+        new_state = game_current_state
         while True:
             # Get Action to take based on the Current State
             act = agent.get_action(game_current_state, action_verbose)
-            action = car_actions[act]
+            action = env.car_actions[act]
+
             if steps > 40:
+
                 new_state, reward, done, info = env.step(action)
                 agent.per_memory.store([game_current_state, act, reward, new_state, done])
-                if training:
-                    agent.train_model_per(done)
+            if training:
+                agent.train_model_per(done)
 
-                # Update params and check game status
-                total_reward += reward
-                steps += 1
-                _game_is_running = env.render()
-                game_current_state = new_state
+            # Update params and check game status
+            total_reward += reward
+            steps += 1
+            game_is_running = env.render()
+            game_current_state = new_state
 
-                if not done or not _game_is_running or total_reward < min_reward_allowed:
-                    agent.save_model()
-                    episode_num += 1
-                    if episode_num % train_target_every == 0:
-                        agent.train_target_model()
-                    break
+            if done or not game_is_running or restart or total_reward < min_reward_allowed:
+                agent.save_model()
+                episode_num += 1
+                if episode_num % train_target_every == 0:
+                    agent.train_target_model()
+                break
 
 
-def human():
+def human_driver():
     a = np.array([0.0, 0.0, 0.0])
 
     def key_press(k, mod):
@@ -164,6 +165,8 @@ def human():
     env.viewer.window.on_key_release = key_release
     if record_video:
         env = record_game(env)
+    game_is_running = True
+
     while game_is_running:
         env.reset()
         total_reward = 0.0
@@ -173,8 +176,8 @@ def human():
             s, r, done, info = env.step(a)
             total_reward += r
             steps += 1
-            isopen = env.render()
-            if done or restart or isopen == False:
+            game_is_running = env.render()
+            if done or restart or game_is_running is False:
                 break
     env.close()
 
@@ -192,7 +195,9 @@ def conv_2_hsv(img):
 
 
 def crop_bottom(img):
-    return img[:, :81]
+    plt.imshow(img[:81, :])
+    plt.show()
+    return img[:81, :]
 
 
 def on_track_detection(img):
@@ -760,16 +765,53 @@ class DQN:
     def update_replay_memory(self, transition):
         self.per_memory.store(transition)
 
+    def ttr(self, terminal_state):
+
+        tree_index, minibatch = self.per_memory.sample(self.batch_size)
+
+        current_states = np.array([transition[0] for transition in minibatch]) / 255
+        current_qs_list = self.model.predict(current_states)
+
+        new_current_states = np.array([transition[3] for transition in minibatch]) / 255
+        future_qs_list = self.target_model.predict(new_current_states)
+
+        actions = np.array([transition[1] for transition in minibatch])
+        X = []
+        y = []
+
+        for index, (current_state, action, reward, new_current_state, done) in enumerate(minibatch):
+            if not done:
+                max_future_q = np.max(future_qs_list[index])
+                new_q = reward + self.gamma * max_future_q
+            else:
+                new_q = reward
+
+            current_qs = current_qs_list[index]
+            current_qs[action] = new_q
+
+            X.append(current_state)
+            y.append(current_qs)
+
+        indices = np.arange(self.batch_size, dtype=np.int32)
+        absolute_errors = np.abs(current_qs_list[indices, actions] - target[indices, actions])
+        # Update priority
+        self.per_memory.batch_update(tree_index, absolute_errors)
+
+
+        self.model.fit(np.array(X) / 255, np.array(y), batch_size=self.batch_size, verbose=0, shuffle=False,
+                       callbacks=[self.tensorboard] if terminal_state else None)
+        self.save_model()
+
     def train_model_per(self, terminal_state):
         # TODO: FIX
         tree_index, minibatch = self.per_memory.sample(self.batch_size)
 
-        state = np.zeros((self.batch_size, self.input_shape))
+        current_state = np.zeros((self.batch_size, self.input_shape))
         next_state = np.zeros((self.batch_size, self.input_shape))
         action, reward, done = [], [], []
 
         for i in range(self.batch_size):
-            state[i] = minibatch[i][0]
+            current_state[i] = minibatch[i][0]
             action.append(minibatch[i][1])
             reward.append(minibatch[i][2])
             next_state[i] = minibatch[i][3]
@@ -777,31 +819,31 @@ class DQN:
 
         # do batch prediction to save speed
         # predict Q-values for starting state using the main network
-        target = self.model.predict(state)
-        target_old = np.array(target)
+        current_qs = self.model.predict(current_state)
+        target_old = np.array(current_qs)
         # predict best action in ending state using the main network
         target_next = self.model.predict(next_state)
         # predict Q-values for ending state using the target network
-        target_val = self.target_model.predict(next_state)
+        target_qs = self.target_model.predict(next_state)
 
         for i in range(len(minibatch)):
             # correction on the Q value for the action used
             if done[i]:
-                target[i][action[i]] = reward[i]
+                current_qs[i][action[i]] = reward[i]
             else:
                 # current Q Network selects the action
                 # a'_max = argmax_a' Q(s', a')
                 a = np.argmax(target_next[i])
                 # target Q Network evaluates the action
                 # Q_max = Q_target(s', a'_max)
-                target[i][action[i]] = reward[i] + self.gamma * (target_val[i][a])
+                current_qs[i][action[i]] = reward[i] + self.gamma * (target_qs[i][a])
 
         indices = np.arange(self.batch_size, dtype=np.int32)
-        absolute_errors = np.abs(target_old[indices, np.array(action)] - target[indices, np.array(action)])
+        absolute_errors = np.abs(target_old[indices, np.array(action)] - current_qs[indices, np.array(action)])
         # Update priority
         self.per_memory.batch_update(tree_index, absolute_errors)
 
-        self.model.fit(state, target, batch_size=self.batch_size, verbose=0, shuffle=False,
+        self.model.fit(current_state, current_qs, batch_size=self.batch_size, verbose=0, shuffle=False,
                        callbacks=[self.tensorboard] if terminal_state else None)
         self.save_model()
 
@@ -918,7 +960,7 @@ if __name__ == '__main__':
 
     if human_control:
         print("Human is Driving")
-        human()
+        human_driver()
     elif not human_control:
         print("AI is Driving")
-        not_human()
+        ai_driver()
