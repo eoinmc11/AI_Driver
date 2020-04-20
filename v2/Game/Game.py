@@ -63,6 +63,7 @@ def ai_driver():
                 episode += 1
                 if episode % TAU is 0:
                     agent.train_target_model()
+                break
 
 
 def human_driver():
