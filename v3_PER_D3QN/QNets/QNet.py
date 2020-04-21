@@ -13,7 +13,7 @@ from tensorflow.keras.optimizers import Adam
 
 from v3_PER_D3QN.ReplayMemory import Memory as m
 
-DECAY = 0.995
+DECAY = 0.999
 BATCH_SIZE = 32
 DISCOUNT = 0.85
 LEARNING_RATE = 0.005

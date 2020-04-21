@@ -14,13 +14,13 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # ========== Boolean ==========
 TRAINING = True
 AI_DRIVER = True
-RECORD_VIDEO = False
+RECORD_VIDEO = True
 
 # ========== Parameters ==========
 TAU = 8
 VERBOSE = 1
 MIN_REW = -20
-MODEL_NAME = 'TEST'
+MODEL_NAME = 'Model_1'
 VIDEO_PATH = 'video-test'
 
 
