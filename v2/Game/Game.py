@@ -44,13 +44,13 @@ def ai_driver():
         current_state = env.reset()
         total_reward = 0.0
         while True:
-            act = agent.get_action(current_state, VERBOSE)
-            action = env.car_actions[act]
+            act_index = agent.get_action(current_state, VERBOSE)
+            action = env.car_actions[act_index]
             new_state, reward, done, info = env.step(action)
             if PER:
-                agent.replay_memory.store([current_state, act, reward, new_state, done])
+                agent.replay_memory.store([current_state, act_index, reward, new_state, done])
             else:
-                agent.replay_memory.append([current_state, act, reward, new_state, done])
+                agent.replay_memory.append([current_state, act_index, reward, new_state, done])
             if TRAINING:
                 agent.train_model(done)
             total_reward += reward
@@ -58,7 +58,6 @@ def ai_driver():
             game = env.render()
             current_state = new_state
             if done or not game or total_reward < MIN_REW:
-                print(done)
                 agent.save_model()
                 episode += 1
                 if episode % TAU is 0:
