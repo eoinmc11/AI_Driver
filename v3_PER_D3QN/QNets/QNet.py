@@ -101,16 +101,16 @@ class QNet:
         out = MaxPooling2D()(out)
         out = Flatten()(out)
         value = Dense(units=64,
-                      kernel_initializer='zeros',
+                      kernel_initializer='random_normal',
                       activation='relu')(out)
         value = Dense(units=1,
-                      kernel_initializer='zeros',
+                      kernel_initializer='random_normal',
                       activation='relu')(value)
         advantage = Dense(units=64,
-                          kernel_initializer='zeros',
+                          kernel_initializer='random_normal',
                           activation='relu')(out)
         advantage = Dense(units=self.output_shape,
-                          kernel_initializer='zeros',
+                          kernel_initializer='random_normal',
                           activation='softmax')(advantage)
         advantage_mean = Lambda(lambda x: k.mean(x, axis=1))(advantage)
         advantage = Subtract()([advantage, advantage_mean])
@@ -122,27 +122,27 @@ class QNet:
         return model
 
     def train_model(self, terminal_state):
-        tree_index, batch, is_weights = self.replay_memory.sample(self.batch_size)
+        tree_index, batch = self.replay_memory.sample(self.batch_size)
 
-        states_mb = np.array([each[0][0] for each in batch])
-        actions_mb = np.array([each[0][1] for each in batch])
-        rewards_mb = np.array([each[0][2] for each in batch])
-        next_states_mb = np.array([each[0][3] for each in batch])
-        dones_mb = np.array([each[0][4] for each in batch])
+        states_mb = np.array([transition[0] for transition in batch]) / 255
+        actions_mb = np.array([transition[1] for transition in batch])
+        rewards_mb = np.array([transition[2] for transition in batch])
+        next_states_mb = np.array([transition[3] for transition in batch]) / 255
+        dones_mb = np.array([transition[4] for transition in batch])
 
         q_cs = self.model.predict(states_mb)
         q_cs_old = np.array(q_cs)
         q_ns = self.model.predict(next_states_mb)
         q_t_ns = self.target_model.predict(next_states_mb)
 
-        x = [states_mb]
+        x = states_mb
         y = []
         abs_errors = []
 
         for i in range(0, len(batch)):
             terminal = dones_mb[i]
 
-            action = np.argmax(self.model.predict(q_ns[i])[0])
+            action = np.argmax(q_ns[i])
 
             if not terminal:
                 target = rewards_mb[i] + self.gamma * q_t_ns[i][action]
@@ -152,10 +152,10 @@ class QNet:
             current_q = q_cs[i]
             current_q[action] = target
             y.append(current_q)
-            abs_errors.append(q_cs_old[i, action] - current_q[i, action])
+            abs_errors.append(q_cs_old[i, action] - current_q[action])
 
         self.replay_memory.batch_update(tree_index, np.abs(abs_errors))
 
-        self.model.fit(np.array(x), np.array(y), batch_size=self.batch_size, verbose=0, shuffle=False,
+        self.model.fit(np.array(x) / 255, np.array(y), verbose=0, shuffle=False,
                        callbacks=[self.tensorboard] if terminal_state else None)
         self.save_model()

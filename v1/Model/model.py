@@ -148,18 +148,20 @@ class DQN:
         if len(self.replay_memory) < self.batch_size:
             return
 
-        samples = random.sample(self.replay_memory, self.batch_size)
+        batch = random.sample(self.replay_memory, self.batch_size)
+        print(np.array(batch).shape)
+        exit()
 
-        current_states = np.array([transition[0] for transition in samples]) / 255
+        current_states = np.array([transition[0] for transition in batch]) / 255
         current_qs_list = self.model.predict(current_states)
 
-        new_current_states = np.array([transition[3] for transition in samples]) / 255
+        new_current_states = np.array([transition[3] for transition in batch]) / 255
         future_qs_list = self.target_model.predict(new_current_states)
 
         X = []
         y = []
 
-        for index, (current_state, action, reward, new_current_state, done) in enumerate(samples):
+        for index, (current_state, action, reward, new_current_state, done) in enumerate(batch):
             if not done:
                 max_future_q = np.max(future_qs_list[index])
                 new_q = reward + self.gamma * max_future_q

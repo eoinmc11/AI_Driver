@@ -36,7 +36,6 @@ class Memory(object):  # stored as ( s, a, r, s_ ) in SumTree
             index, priority, data = self.tree.get_leaf(value)
 
             batch_index[i] = index
-
             minibatch.append([data[0], data[1], data[2], data[3], data[4]])
 
         return batch_index, minibatch

@@ -124,6 +124,8 @@ class QNet:
             if len(self.replay_memory) < self.batch_size:
                 return
             minibatch = random.sample(self.replay_memory, self.batch_size)
+            print(np.array(minibatch).shape)
+            exit()
 
         # Gets Q-Values from the Current States
         current_states = np.array([transition[0] for transition in minibatch]) / 255

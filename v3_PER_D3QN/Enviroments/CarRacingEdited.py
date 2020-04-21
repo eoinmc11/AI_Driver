@@ -107,7 +107,6 @@ class CarRacing(gym.Env, EzPickle):
             shape=polygonShape(vertices=
                                [(0, 0), (1, 0), (1, -1), (0, -1)]))
 
-        # TODO: redo
         self.action_space = spaces.Box(np.array([-1, 0, 0]), np.array([+1, +1, +1]),
                                        dtype=np.float32)  # steer, gas, brake
         self.car_actions = (np.array([-1.0, 0.0, 0.0]),  # 1. Full Left

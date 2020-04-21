@@ -21,6 +21,7 @@ TAU = 8
 VERBOSE = 1
 MIN_REW = -20
 MODEL_NAME = 'TEST'
+VIDEO_PATH = 'video-test'
 
 
 def ai_driver():
@@ -58,6 +59,7 @@ def ai_driver():
                 if episode % TAU is 0:
                     agent.train_target_model()
                 break
+
 
 def human_driver():
     a = np.array([0.0, 0.0, 0.0])
@@ -110,7 +112,10 @@ def human_driver():
 
 def record_game(env):
     # TODO: Test this
-    return Monitor(env, '/tmp/video-test', force=True)
+    print('Recording')
+    if not os.path.exists(VIDEO_PATH):
+        os.mkdir('video-test')
+    return Monitor(env, VIDEO_PATH, force=True)
 
 
 if __name__ == '__main__':
